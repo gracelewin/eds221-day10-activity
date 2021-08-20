@@ -1,0 +1,90 @@
+---
+title: "Day 10 Activity"
+author: "Grace Lewin"
+date: "8/20/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(here)
+library(ggbeeswarm)
+```
+
+```{r}
+meteorological <- read_csv(here("data", "ntl20_v6.csv"))
+
+ice <- read_csv(here("data", "ntl33_v7.csv"), na = "-999")
+```
+
+```{r}
+ ggplot(data = ice, aes(x = lakeid, y = ice_duration)) +
+  geom_beeswarm(aes(color = lakeid), show.legend = FALSE) +
+  geom_boxplot(fill = NA, outlier.shape = NA) +
+  labs(y = "Ice Duration (# of days frozen)",
+       x = "Lake",
+       title = "Ice Duration Across Different Lakes in the Madison Lake Area") +
+  theme_minimal()
+
+```
+
+```{r}
+mean_ice <- ice %>% 
+  group_by(year4) %>% 
+  summarize(mean_ice = mean(ice_duration))
+
+ggplot(data = mean_ice, aes(x = year4, y = mean_ice)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "orange") +
+  labs(x = "Year", 
+       y = "Mean Ice Duration (# of days frozen)",
+       title = "Mean Ice Cover Duration by year for the Madison Lake Area")
+```
+There is a negative relationship between the mean ice duration and year for the Madison Lake Area.
+
+```{r}
+mean_air_temp <- meteorological %>% 
+  filter(month %in% c(12, 1, 2)) %>% 
+  group_by(year4) %>% 
+  summarize(mean_air = mean(ave_air_temp_adjusted))
+
+
+ggplot(data = mean_air_temp, aes(x = year4, y = mean_air)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(x = "Year", 
+       y = "Mean Air Temperature (degC)",
+       title = "Mean Winter Temperatures by Year in the Madison Lake Area")
+```
+
+There is an overall positive relationship between the mean winter temperatures and year in the Madison Lake Area.
+
+```{r}
+mean_air_temp_ice_cover <- full_join(mean_ice, mean_air_temp)
+
+ggplot(data = mean_air_temp_ice_cover, aes(x = mean_air, y = mean_ice)) +
+  geom_point() +
+  labs(x = "Mean Air Temperature (degC)", 
+       y = "Mean Ice Duration (# of days frozen)",
+       title = "Mean Ice Cover Duration vs. Mean Winter Temperatures",
+       subtitle = "Madison Lake Area") +
+  geom_smooth(method = "lm", color = "cyan4")
+```
+There is an overall negative tren between mean ice duration and mean winter air temperature in the Madison Lake Area.
+
+```{r}
+thaw_dates_since_1970 <- ice %>% 
+  filter(year4 >= 1970) %>% 
+  mutate(ice_off = lubridate::ymd(ice_off)) %>% 
+  mutate(day = lubridate::yday(ice_off))
+
+ggplot(data = thaw_dates_since_1970, aes(x = year4, y = day)) +
+  geom_point() +
+  geom_smooth(method = "lm", color = "purple") +
+  labs(x = "Year", 
+       y = "Ice off day",
+       title = "Ice Off Day Since 1970 in the Madison Lake Area"
+       )
+```
+There is a slight overall trend that the ice off day gets earlier each year.
